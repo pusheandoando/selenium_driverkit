@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "selenium_driverkit"
+version = "1.0.0"
+description = "Automated WebDriver downloader and manager for Selenium."
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    {name = "Christian (@pusheandoando)"}
+]
+dependencies = [
+    "requests>=2.28",
+    "tqdm>=4.64",
+]
+
+[project.urls]
+Homepage = "https://github.com/pusheandoando/selenium_driverkit"
+Repository = "https://github.com/pusheandoando/selenium_driverkit"
+
+[tool.setuptools.packages.find]
+where = ["."]
