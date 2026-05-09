@@ -19,7 +19,7 @@ DEFAULT_STORAGE = os.path.join(os.path.expanduser("~"), ".selenium_driverkit")
 
 
 
-def get_driver(browser: str, platform: str="linux", download_path: str=None, auto_update: bool=True):
+def get_driver(browser: str, platform: str = "linux", download_path: str = None, auto_update: bool = True):
     browser = browser.lower().strip()
     platform = platform.lower().strip()
 
@@ -28,23 +28,23 @@ def get_driver(browser: str, platform: str="linux", download_path: str=None, aut
 
     if platform == "linux":
         if browser in ("chrome", "chromium"):
-            return _linux_chromium(download_path=download_path, auto_update=auto_update)
+            return _linux_chromium(browser=browser, download_path=download_path, auto_update=auto_update)
         elif browser == "firefox":
             return _linux_firefox(download_path=download_path, auto_update=auto_update)
         else:
             raise ValueError(f"[selenium_dk] unsupported browser: '{browser}', use 'chrome', 'chromium', 'firefox'.")
-    
+
     elif platform == "windows":
         if browser in ("chrome", "chromium"):
-            return _windows_chromium(download_path=download_path, auto_update=auto_update)
+            return _windows_chromium(browser=browser, download_path=download_path, auto_update=auto_update)
         elif browser == "firefox":
             return _windows_firefox(download_path=download_path, auto_update=auto_update)
         else:
             raise ValueError(f"[selenium_dk] unsupported browser: '{browser}', use 'chrome', 'chromium', 'firefox'.")
-    
+
     elif platform == "macos":
         if browser in ("chrome", "chromium"):
-            return _macos_chromium(download_path=download_path, auto_update=auto_update)
+            return _macos_chromium(browser=browser, download_path=download_path, auto_update=auto_update)
         elif browser == "firefox":
             return _macos_firefox(download_path=download_path, auto_update=auto_update)
         else:

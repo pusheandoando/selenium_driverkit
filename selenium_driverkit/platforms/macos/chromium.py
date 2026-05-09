@@ -22,9 +22,15 @@ _ARCH_MAP = {
 
 _CHROME_APP_PATHS = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
     "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
 ]
+
+_CHROMIUM_APP_PATHS = [
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+]
+
+_CHROME_CMD_CANDIDATES = ["google-chrome", "google-chrome-stable"]
+_CHROMIUM_CMD_CANDIDATES = ["chromium"]
 
 
 
@@ -38,7 +44,7 @@ def _resolve_macos_platform():
     return platform_suffix
 
 
-def _get_browser_version():
+def _get_chrome_version():
     for app in _CHROME_APP_PATHS:
         if os.path.exists(app):
             try:
@@ -50,8 +56,7 @@ def _get_browser_version():
             except (subprocess.CalledProcessError, FileNotFoundError, OSError):
                 continue
 
-    candidates = ["google-chrome", "google-chrome-stable", "chromium"]
-    for cmd in candidates:
+    for cmd in _CHROME_CMD_CANDIDATES:
         try:
             out = subprocess.check_output([cmd, "--version"], stderr=subprocess.DEVNULL)
             text = out.decode("utf-8").strip()
@@ -61,9 +66,32 @@ def _get_browser_version():
         except (subprocess.CalledProcessError, FileNotFoundError):
             continue
 
-    raise RuntimeError(
-        "[selenium_dk] could not detect Chrome or Chromium version, make sure it is installed."
-    )
+    raise RuntimeError("[selenium_dk] could not detect Google Chrome version, make sure it is installed.")
+
+
+def _get_chromium_version():
+    for app in _CHROMIUM_APP_PATHS:
+        if os.path.exists(app):
+            try:
+                out = subprocess.check_output([app, "--version"], stderr=subprocess.DEVNULL)
+                text = out.decode("utf-8").strip()
+                match = re.search(r"(\d+\.\d+\.\d+\.\d+)", text)
+                if match:
+                    return match.group(1)
+            except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+                continue
+
+    for cmd in _CHROMIUM_CMD_CANDIDATES:
+        try:
+            out = subprocess.check_output([cmd, "--version"], stderr=subprocess.DEVNULL)
+            text = out.decode("utf-8").strip()
+            match = re.search(r"(\d+\.\d+\.\d+\.\d+)", text)
+            if match:
+                return match.group(1)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            continue
+
+    raise RuntimeError("[selenium_dk] could not detect Chromium version, make sure it is installed.")
 
 
 def _get_chromedriver_version(binary_path):
@@ -71,7 +99,6 @@ def _get_chromedriver_version(binary_path):
         out = subprocess.check_output([binary_path, "--version"], stderr=subprocess.DEVNULL)
         text = out.decode("utf-8").strip()
         match = re.search(r"(\d+\.\d+\.\d+\.\d+)", text)
-
         if match:
             return match.group(1)
         return None
@@ -125,15 +152,19 @@ def _download_file(url, dest_path):
     bar.close()
 
 
-def get_driver_chromium(download_path: str, auto_update: bool = True):
-    drivers_root = os.path.join(download_path, "Drivers", "Chromium", "MacOS")
+def get_driver_chromium(browser: str, download_path: str, auto_update: bool = True):
+    browser_label = "Chrome" if browser == "chrome" else "Chromium"
+    drivers_root = os.path.join(download_path, "Drivers", "Chromium", "MacOS", browser_label)
     os.makedirs(drivers_root, exist_ok=True)
 
     print('\n')
-    print("[ Chrome/Chromium WebDriver ]")
+    print(f"[ {browser_label} WebDriver (MacOS) ]")
 
     try:
-        browser_version = _get_browser_version()
+        if browser == "chrome":
+            browser_version = _get_chrome_version()
+        else:
+            browser_version = _get_chromium_version()
         print(f" - Browser version detected: {browser_version}")
     except RuntimeError as e:
         print(f" [!!] {e}")

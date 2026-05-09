@@ -20,6 +20,9 @@ _ARCH_MAP = {
     "arm64": "linux-arm64",
 }
 
+_CHROME_CANDIDATES = ["google-chrome", "google-chrome-stable"]
+_CHROMIUM_CANDIDATES = ["chromium", "chromium-browser"]
+
 
 
 
@@ -32,23 +35,30 @@ def _resolve_linux_platform():
     return platform_suffix
 
 
-def _get_browser_version():
-    candidates = ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]
-
-    for cmd in candidates:
+def _get_chrome_version():
+    for cmd in _CHROME_CANDIDATES:
         try:
             out = subprocess.check_output([cmd, "--version"], stderr=subprocess.DEVNULL)
             text = out.decode("utf-8").strip()
             match = re.search(r"(\d+\.\d+\.\d+\.\d+)", text)
-
             if match:
                 return match.group(1)
         except (subprocess.CalledProcessError, FileNotFoundError):
             continue
+    raise RuntimeError("[selenium_dk] could not detect Google Chrome version, make sure it is installed.")
 
-    raise RuntimeError(
-        "[selenium_dk] could not detect Chrome or Chromium version, make sure is installed."
-    )
+
+def _get_chromium_version():
+    for cmd in _CHROMIUM_CANDIDATES:
+        try:
+            out = subprocess.check_output([cmd, "--version"], stderr=subprocess.DEVNULL)
+            text = out.decode("utf-8").strip()
+            match = re.search(r"(\d+\.\d+\.\d+\.\d+)", text)
+            if match:
+                return match.group(1)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            continue
+    raise RuntimeError("[selenium_dk] could not detect Chromium version, make sure it is installed.")
 
 
 def _get_chromedriver_version(binary_path):
@@ -56,7 +66,6 @@ def _get_chromedriver_version(binary_path):
         out = subprocess.check_output([binary_path, "--version"], stderr=subprocess.DEVNULL)
         text = out.decode("utf-8").strip()
         match = re.search(r"(\d+\.\d+\.\d+\.\d+)", text)
-
         if match:
             return match.group(1)
         return None
@@ -110,15 +119,19 @@ def _download_file(url, dest_path):
     bar.close()
 
 
-def get_driver_chromium(download_path: str, auto_update: bool = True):
-    drivers_root = os.path.join(download_path, "Drivers", "Chromium", "Linux")
+def get_driver_chromium(browser: str, download_path: str, auto_update: bool = True):
+    browser_label = "Chrome" if browser == "chrome" else "Chromium"
+    drivers_root = os.path.join(download_path, "Drivers", "Chromium", "Linux", browser_label)
     os.makedirs(drivers_root, exist_ok=True)
 
     print('\n')
-    print("[ Chrome/Chromium WebDriver ]")
+    print(f"[ {browser_label} WebDriver (Linux) ]")
 
     try:
-        browser_version = _get_browser_version()
+        if browser == "chrome":
+            browser_version = _get_chrome_version()
+        else:
+            browser_version = _get_chromium_version()
         print(f" - Browser version detected: {browser_version}")
     except RuntimeError as e:
         print(f" [!!] {e}")

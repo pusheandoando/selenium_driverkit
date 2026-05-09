@@ -25,6 +25,9 @@ _ARCH_MAP = {
 _CHROME_EXE_PATHS = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+]
+
+_CHROMIUM_EXE_PATHS = [
     r"C:\Program Files\Chromium\Application\chrome.exe",
     r"C:\Program Files (x86)\Chromium\Application\chrome.exe",
 ]
@@ -43,16 +46,15 @@ def _resolve_windows_platform():
     return platform_suffix
 
 
-def _get_browser_version():
+def _get_chrome_version():
     try:
         import winreg
         key_paths = [
             (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Google\Chrome\BLBeacon"),
             (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Google\Chrome\BLBeacon"),
             (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Google\Chrome\BLBeacon"),
-            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Chromium\BLBeacon"),
         ]
-        
+
         for hive, key_path in key_paths:
             try:
                 key = winreg.OpenKey(hive, key_path)
@@ -80,9 +82,45 @@ def _get_browser_version():
             except (subprocess.CalledProcessError, FileNotFoundError, OSError):
                 continue
 
-    raise RuntimeError(
-        "[selenium_dk] could not detect Chrome or Chromium version, make sure it is installed."
-    )
+    raise RuntimeError("[selenium_dk] could not detect Google Chrome version, make sure it is installed.")
+
+
+def _get_chromium_version():
+    try:
+        import winreg
+        key_paths = [
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Chromium\BLBeacon"),
+            (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Chromium\BLBeacon"),
+        ]
+
+        for hive, key_path in key_paths:
+            try:
+                key = winreg.OpenKey(hive, key_path)
+                version, _ = winreg.QueryValueEx(key, "version")
+                winreg.CloseKey(key)
+                if re.match(r"\d+\.\d+\.\d+\.\d+", version):
+                    return version
+            except OSError:
+                continue
+    except ImportError:
+        pass
+
+    for exe in _CHROMIUM_EXE_PATHS:
+        if os.path.exists(exe):
+            try:
+                out = subprocess.check_output(
+                    [exe, "--version"],
+                    stderr=subprocess.DEVNULL,
+                    creationflags=_NO_WINDOW
+                )
+                text = out.decode("utf-8").strip()
+                match = re.search(r"(\d+\.\d+\.\d+\.\d+)", text)
+                if match:
+                    return match.group(1)
+            except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+                continue
+
+    raise RuntimeError("[selenium_dk] could not detect Chromium version, make sure it is installed.")
 
 
 def _get_chromedriver_version(binary_path):
@@ -94,7 +132,6 @@ def _get_chromedriver_version(binary_path):
         )
         text = out.decode("utf-8").strip()
         match = re.search(r"(\d+\.\d+\.\d+\.\d+)", text)
-
         if match:
             return match.group(1)
         return None
@@ -148,15 +185,19 @@ def _download_file(url, dest_path):
     bar.close()
 
 
-def get_driver_chromium(download_path: str, auto_update: bool = True):
-    drivers_root = os.path.join(download_path, "Drivers", "Chromium", "Windows")
+def get_driver_chromium(browser: str, download_path: str, auto_update: bool = True):
+    browser_label = "Chrome" if browser == "chrome" else "Chromium"
+    drivers_root = os.path.join(download_path, "Drivers", "Chromium", "Windows", browser_label)
     os.makedirs(drivers_root, exist_ok=True)
 
     print('\n')
-    print("[ Chrome/Chromium WebDriver ]")
+    print(f"[ {browser_label} WebDriver (Windows) ]")
 
     try:
-        browser_version = _get_browser_version()
+        if browser == "chrome":
+            browser_version = _get_chrome_version()
+        else:
+            browser_version = _get_chromium_version()
         print(f" - Browser version detected: {browser_version}")
     except RuntimeError as e:
         print(f" [!!] {e}")

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "selenium_driverkit"
-version = "1.0.0"
+version = "1.0.1"
 description = "Automated WebDriver downloader and manager for Selenium."
 readme = "README.md"
 requires-python = ">=3.8"

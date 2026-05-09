@@ -114,7 +114,7 @@ def get_driver_firefox(download_path: str, auto_update: bool = True):
     binary_path = os.path.join(drivers_root, "geckodriver")
 
     print('\n')
-    print("[ Firefox WebDriver ]")
+    print("[ Firefox WebDriver (MacOS) ]")
 
     try:
         browser_version = _get_browser_version()
